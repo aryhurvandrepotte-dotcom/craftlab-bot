@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
-import { Client, Events, GatewayIntentBits, MessageFlags } from 'discord.js';
+import {
+  ApplicationFlags, Client, Events, GatewayIntentBits, MessageFlags, Partials, REST, Routes,
+} from 'discord.js';
 import { handleInvite, inviteCommand } from './invite.js';
+import { handleFlagReaction } from './translate.js';
 import { handleNewMod, newModCommand } from './newmod.js';
 import { VERIFY_BUTTON_ID } from './rules.js';
 import { findVerifiedRole, setupVerification } from './setup.js';
@@ -12,7 +15,23 @@ if (!DISCORD_TOKEN) throw new Error('DISCORD_TOKEN manquant dans .env');
 if (!GUILD_ID) throw new Error('GUILD_ID manquant dans .env');
 
 const runSetup = process.argv.includes('--setup');
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+// La traduction par drapeau doit lire le texte des messages : "Message Content Intent" doit être activé
+// dans le Developer Portal. Sinon Discord refuse la connexion, donc on démarre sans la traduction.
+const { flags } = await new REST().setToken(DISCORD_TOKEN).get(Routes.currentApplication());
+const canReadMessages = Boolean(flags & (ApplicationFlags.GatewayMessageContent | ApplicationFlags.GatewayMessageContentLimited));
+if (!canReadMessages) console.warn('[bot] Message Content Intent désactivé : traduction par drapeau désactivée');
+
+const client = new Client({
+  intents: canReadMessages
+    ? [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions, GatewayIntentBits.MessageContent]
+    : [GatewayIntentBits.Guilds],
+  partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User],
+});
+
+client.on(Events.MessageReactionAdd, (reaction, user) => {
+  handleFlagReaction(reaction, user).catch((err) => console.error('[bot] Erreur de traduction :', err.message));
+});
 
 const commands = {
   newmod: handleNewMod,

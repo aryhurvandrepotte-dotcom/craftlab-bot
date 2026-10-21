@@ -4,5 +4,9 @@
     "color": "#57F287"
   },
   "rulesChannel": "rules",
-  "publicChannels": ["welcome", "announcements"]
+  "publicChannels": ["welcome", "announcements"],
+  "newMod": {
+    "channel": "releases",
+    "pingRole": "Mod Updates"
+  }
 }

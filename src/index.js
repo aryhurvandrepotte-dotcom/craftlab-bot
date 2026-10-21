@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { Client, Events, GatewayIntentBits, MessageFlags } from 'discord.js';
+import { handleNewMod, newModCommand } from './newmod.js';
 import { VERIFY_BUTTON_ID } from './rules.js';
 import { findVerifiedRole, setupVerification } from './setup.js';
 
@@ -13,6 +14,17 @@ const runSetup = process.argv.includes('--setup');
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.isChatInputCommand() && interaction.commandName === 'newmod') {
+    try {
+      await handleNewMod(interaction, config);
+    } catch (err) {
+      console.error('[bot] Erreur /newmod :', err);
+      const reply = { content: '❌ Could not post the announcement, check the bot logs.', flags: MessageFlags.Ephemeral };
+      await (interaction.deferred || interaction.replied ? interaction.editReply(reply) : interaction.reply(reply)).catch(() => {});
+    }
+    return;
+  }
+
   if (!interaction.isButton() || interaction.customId !== VERIFY_BUTTON_ID) return;
 
   try {
@@ -53,7 +65,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 client.once(Events.ClientReady, async (c) => {
   console.log(`[bot] Connecté en tant que ${c.user.tag}`);
-  if (!runSetup) return;
+  if (!runSetup) {
+    // Commandes du serveur uniquement : elles apparaissent tout de suite (les globales mettent jusqu'à 1 h)
+    await c.application.commands.set([newModCommand.toJSON()], GUILD_ID)
+      .then(() => console.log('[bot] Commande /newmod enregistrée'))
+      .catch((err) => console.error('[bot] Impossible d\'enregistrer /newmod :', err.message));
+    return;
+  }
 
   try {
     const guild = c.guilds.cache.get(GUILD_ID) ?? await c.guilds.fetch(GUILD_ID);

@@ -1,0 +1,17 @@
+{
+  "name": "craftlab-bot",
+  "version": "1.0.0",
+  "description": "Bot Discord Craft Lab : rôle Verified, salons cachés aux non-vérifiés, règlement FR/EN avec bouton de vérification",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "setup": "node --env-file-if-exists=.env src/index.js --setup"
+  },
+  "engines": {
+    "node": ">=22.9"
+  },
+  "dependencies": {
+    "discord.js": "^14.27.0"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "verifiedRole": {
+    "name": "Verified",
+    "color": "#57F287"
+  },
+  "rulesChannel": "rules",
+  "publicChannels": ["welcome", "announcements"]
+}

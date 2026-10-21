@@ -8,5 +8,8 @@
   "newMod": {
     "channel": "releases",
     "pingRole": "Mod Updates"
+  },
+  "invite": {
+    "channel": "welcome"
   }
 }

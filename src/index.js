@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { Client, Events, GatewayIntentBits, MessageFlags } from 'discord.js';
+import { handleInvite, inviteCommand } from './invite.js';
 import { handleNewMod, newModCommand } from './newmod.js';
 import { VERIFY_BUTTON_ID } from './rules.js';
 import { findVerifiedRole, setupVerification } from './setup.js';
@@ -13,13 +14,19 @@ if (!GUILD_ID) throw new Error('GUILD_ID manquant dans .env');
 const runSetup = process.argv.includes('--setup');
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
+const commands = {
+  newmod: handleNewMod,
+  invite: handleInvite,
+};
+
 client.on(Events.InteractionCreate, async (interaction) => {
-  if (interaction.isChatInputCommand() && interaction.commandName === 'newmod') {
+  const handler = interaction.isChatInputCommand() && commands[interaction.commandName];
+  if (handler) {
     try {
-      await handleNewMod(interaction, config);
+      await handler(interaction, config);
     } catch (err) {
-      console.error('[bot] Erreur /newmod :', err);
-      const reply = { content: '❌ Could not post the announcement, check the bot logs.', flags: MessageFlags.Ephemeral };
+      console.error(`[bot] Erreur /${interaction.commandName} :`, err);
+      const reply = { content: '❌ Something went wrong, check the bot logs.', flags: MessageFlags.Ephemeral };
       await (interaction.deferred || interaction.replied ? interaction.editReply(reply) : interaction.reply(reply)).catch(() => {});
     }
     return;
@@ -67,9 +74,9 @@ client.once(Events.ClientReady, async (c) => {
   console.log(`[bot] Connecté en tant que ${c.user.tag}`);
   if (!runSetup) {
     // Commandes du serveur uniquement : elles apparaissent tout de suite (les globales mettent jusqu'à 1 h)
-    await c.application.commands.set([newModCommand.toJSON()], GUILD_ID)
-      .then(() => console.log('[bot] Commande /newmod enregistrée'))
-      .catch((err) => console.error('[bot] Impossible d\'enregistrer /newmod :', err.message));
+    await c.application.commands.set([newModCommand.toJSON(), inviteCommand.toJSON()], GUILD_ID)
+      .then(() => console.log('[bot] Commandes /newmod et /invite enregistrées'))
+      .catch((err) => console.error('[bot] Impossible d\'enregistrer les commandes :', err.message));
     return;
   }
 
